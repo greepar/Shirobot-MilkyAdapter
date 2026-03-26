@@ -5,15 +5,14 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
-        <HostAdapterDir>..\ShiroBot\bin\Debug\$(TargetFramework)\adapters\$(AssemblyName)\</HostAdapterDir>
+        <HostAdapterDir>..\ShiroBot\ShiroBot\bin\Debug\$(TargetFramework)\adapters\$(AssemblyName)\</HostAdapterDir>
         <Configurations>Debug;DebugPlugin;DebugAdapter;DebugMilky;DebugAll;Release</Configurations>
     </PropertyGroup>
 
     <ItemGroup>
         
         <PackageReference Include="Milky.Net.Client" Version="3.0.0" />
-        
-        <PackageReference Include="Milky.Net.Model" Version="3.0.0" PrivateAssets="runtime" />
+        <PackageReference Include="Milky.Net.Model" Version="3.0.0" />
 
         <ProjectReference Include="..\ShiroBot\ShiroBot.SDK\ShiroBot.SDK.csproj" PrivateAssets="runtime" />
         <ProjectReference Include="..\ShiroBot\ShiroBot.Model\ShiroBot.Model.csproj" PrivateAssets="runtime" />
@@ -58,7 +57,7 @@
 
     <Target Name="CopyAdapterToHost"
             AfterTargets="Build"
-            Condition="'$(Configuration)'=='Debug' or '$(Configuration)'=='DebugMilky' or '$(Configuration)'=='DebugAll'">
+            Condition="'$(Configuration)'=='Debug'">
         <MakeDir Directories="$(HostAdapterDir)" />
 
         <ItemGroup>

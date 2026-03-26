@@ -3,19 +3,19 @@ using ShiroBot.MilkyAdapter.Milky;
 using ShiroBot.SDK;
 using ShiroBot.SDK.Adapter;
 using ShiroBot.SDK.Config;
+using ShiroBot.SDK.Core;
 using ShiroBot.SDK.Plugin;
 
 namespace ShiroBot.MilkyAdapter;
 
 public class MilkyAdapter : IBotAdapter
 {
-    private IDisposable? _configWatcher;
-    public string Name => "milky";
+    public string Name => "MilkyAdapter";
     public BotComponentMetadata Metadata { get; } = new()
     {
-        Name = "ShiroBot.MilkyAdapter",
-        Version = "1.0.0",
-        Description = "Milky 适配器"
+        Name = "MilkyAdapter",
+        Version = "1.1.0",
+        Description = "Milky Adapter for ShiroBot"
     };
 
     public IFileService File { get; } = new FileService();
@@ -34,28 +34,25 @@ public class MilkyAdapter : IBotAdapter
         var config = Config.Load<MilkyAdapterConfig>();
         Config.Save(config);
 
-        if (config.EnableHotReload)
-        {
-            _configWatcher = Config.Watch<MilkyAdapterConfig>(updated =>
-            {
-                Logger.Info($"MilkyAdapter 配置已变更: {Config.ConfigPath}");
-                Logger.Warning("BaseUrl/AccessToken 的热更新当前只通知，不自动重连。");
-            });
-        }
-
         MilkyClientManager.Initialize(config.BaseUrl, config.AccessToken);
         var milky = MilkyClientManager.Instance;
         Logger.Info("开始连接 Milky...");
-        var loginInfo = await milky.System.GetLoginInfoAsync();
-        var result = await milky.System.GetImplInfoAsync();
-        Logger.Success($"Milky 登录信息获取成功 - Nickname: {loginInfo.Nickname},Milky Impl: {result.ImplName} {result.ImplVersion}");
-        Logger.Success("Milky 登录完成。");
+        try
+        {
+            var loginInfo = await milky.System.GetLoginInfoAsync();
+            var result = await milky.System.GetImplInfoAsync();
+            Logger.Success($"Milky 登录成功 - Nickname: {loginInfo.Nickname},Milky Impl: {result.ImplName} {result.ImplVersion}");
+        }
+        catch (Exception)
+        {
+            Logger.Error("Milky连接失败,请检查Adapter配置是否正确。");
+            throw;
+        }
 
         _sseTokenSource = new CancellationTokenSource();
         _ = Task.Run(async () =>
         {
             var retryCount = 0;
-
             while (!_sseTokenSource.Token.IsCancellationRequested)
             {
                 try
@@ -72,7 +69,6 @@ public class MilkyAdapter : IBotAdapter
                 catch (Exception ex)
                 {
                     Logger.Error($"SSE 事件接收异常: {ex.GetType().Name}: {ex.Message}");
-
                     try
                     {
                         await Task.Delay(TimeSpan.FromSeconds(5), _sseTokenSource.Token);
@@ -84,16 +80,6 @@ public class MilkyAdapter : IBotAdapter
                 }
             }
         });
-
-    }
-
-    public Task StopAsync()
-    {
-        _configWatcher?.Dispose();
-        _configWatcher = null;
-        _sseTokenSource?.Cancel();
-        _sseTokenSource?.Dispose();
-        _sseTokenSource = null;
-        return Task.CompletedTask;
     }
 }
+

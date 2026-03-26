@@ -40,7 +40,7 @@ internal static class MilkyClientManager
             }
 
             httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-            httpClient.DefaultRequestHeaders.Add("User-Agent", "Milky.Net.Client/1.0");
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "Milky.Net.Client/1.1");
 
             _instance = new MilkyClient(httpClient);
         }
