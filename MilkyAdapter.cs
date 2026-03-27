@@ -18,12 +18,14 @@ public class MilkyAdapter : IBotAdapter
         Description = "Milky Adapter for ShiroBot"
     };
 
+    private readonly EventService _eventService = new();
+
     public IFileService File { get; } = new FileService();
     public IFriendService Friend { get; } = new FriendService();
     public IGroupService Group { get; } = new GroupService();
     public IMessageService Message { get; } = new MessageService();
     public ISystemService System { get; } = new SystemService();
-    public IEventService Event { get; } = new EventService();
+    public IEventService Event => _eventService;
     public IConfigContext Config { get; set; } = null!;
     public IConsoleLogger Logger { get; set; } = null!;
 
@@ -36,6 +38,8 @@ public class MilkyAdapter : IBotAdapter
 
         MilkyClientManager.Initialize(config.BaseUrl, config.AccessToken);
         var milky = MilkyClientManager.Instance;
+        _eventService.AttachEvent();
+        
         Logger.Info("开始连接 Milky...");
         try
         {
