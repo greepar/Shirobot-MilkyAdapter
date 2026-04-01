@@ -31,7 +31,7 @@ internal static class MilkyClientManager
             var httpClient = new HttpClient
             {
                 BaseAddress = new Uri(finalBaseAddress),
-                Timeout = TimeSpan.FromSeconds(30)
+                Timeout = TimeSpan.FromSeconds(600)
             };
 
             if (!string.IsNullOrWhiteSpace(authToken))

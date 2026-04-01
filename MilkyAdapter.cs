@@ -1,6 +1,6 @@
 using ShiroBot.MilkyAdapter.AdapterImpl;
 using ShiroBot.MilkyAdapter.Milky;
-using ShiroBot.SDK;
+using ShiroBot.SDK.Abstractions;
 using ShiroBot.SDK.Adapter;
 using ShiroBot.SDK.Config;
 using ShiroBot.SDK.Core;
@@ -29,7 +29,7 @@ public class MilkyAdapter : IBotAdapter
     public IConfigContext Config { get; set; } = null!;
     public IConsoleLogger Logger { get; set; } = null!;
 
-    private CancellationTokenSource? _sseTokenSource;
+    private CancellationTokenSource? _eventTokenSource;
 
     public async Task StartAsync()
     {
@@ -53,37 +53,81 @@ public class MilkyAdapter : IBotAdapter
             throw;
         }
 
-        _sseTokenSource = new CancellationTokenSource();
-        _ = Task.Run(async () =>
+        switch (config.Protocol)
         {
-            var retryCount = 0;
-            while (!_sseTokenSource.Token.IsCancellationRequested)
-            {
-                try
+            case var s when s.Equals("sse", StringComparison.OrdinalIgnoreCase):
+                _eventTokenSource = new CancellationTokenSource();
+                _ = Task.Run(async () =>
                 {
-                    retryCount++;
-                    Logger.Info($"正在尝试连接 SSE 事件流，第 {retryCount} 次。");
-                    await milky.ReceivingEventUsingSSEAsync(_sseTokenSource.Token);
-                }
-                catch (TaskCanceledException)
-                {
-                    Logger.Warning("SSE 事件接收已取消。");
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error($"SSE 事件接收异常: {ex.GetType().Name}: {ex.Message}");
-                    try
+                    var retryCount = 0;
+                    while (!_eventTokenSource.Token.IsCancellationRequested)
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(5), _sseTokenSource.Token);
+                        try
+                        {
+                            retryCount++;
+                            Logger.Info($"正在尝试连接 SSE 事件流，第 {retryCount} 次。");
+                            await milky.ReceivingEventUsingSSEAsync(_eventTokenSource.Token);
+                        }
+                        catch (TaskCanceledException)
+                        {
+                            Logger.Warning("SSE 事件接收已取消。");
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"SSE 事件接收异常: {ex.GetType().Name}: {ex.Message}");
+                            try
+                            {
+                                await Task.Delay(TimeSpan.FromSeconds(5), _eventTokenSource.Token);
+                            }
+                            catch (TaskCanceledException)
+                            {
+                                break;
+                            }
+                        }
                     }
-                    catch (TaskCanceledException)
+                });
+                break;
+            case var s when s.Equals("ws", StringComparison.OrdinalIgnoreCase):
+                _eventTokenSource = new CancellationTokenSource();
+                _ = Task.Run(async () =>
+                {
+                    var retryCount = 0;
+                    while (!_eventTokenSource.Token.IsCancellationRequested)
                     {
-                        break;
+                        try
+                        {
+                            retryCount++;
+                            Logger.Info($"正在尝试连接 WebSocket 事件流，第 {retryCount} 次。");
+                            await milky.ReceivingEventUsingSSEAsync(_eventTokenSource.Token);
+                        }
+                        catch (TaskCanceledException)
+                        {
+                            Logger.Warning("SSE 事件接收已取消。");
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Error($"SSE 事件接收异常: {ex.GetType().Name}: {ex.Message}");
+                            try
+                            {
+                                await Task.Delay(TimeSpan.FromSeconds(5), _eventTokenSource.Token);
+                            }
+                            catch (TaskCanceledException)
+                            {
+                                break;
+                            }
+                        }
                     }
-                }
-            }
-        });
+                });
+                break;
+            case var s when s.Equals("webhook", StringComparison.OrdinalIgnoreCase):
+                BotLog.Error("暂不支持 Webhook 协议");
+                throw new NotSupportedException("暂不支持 Webhook 协议");
+            default:
+                BotLog.Error("请配置正确的协议,支持的协议有Sse,WebSocket");
+                throw new ArgumentOutOfRangeException();
+        }
     }
 }
 
